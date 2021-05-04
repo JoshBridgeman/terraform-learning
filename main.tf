@@ -1,67 +1,24 @@
-terraform {
-  required_providers {
-      aws = {
-          source = "hashicorp/aws"
-          version = "~> 3.0"
-      }
-  }
-}
-
 provider "aws" {
   region = "eu-west-2"
 }
 
-variable "cidr_blocks" {
-    description = "Subnet CIDR Blocks for vpc and subnets"
-    type = list(object({
-      cidr_block = string
-      name = string
-    }
-    ))
-}
+variable vpc_cidr_block {}
+variable subnet_cidr_block {}
+variable avail_zone {}
+variable env_prefix {}
 
-resource "aws_vpc" "development-vpc" {
-  cidr_block = var.cidr_blocks[0].cidr_block
-
+resource "aws_vpc" "app-vpc" {
+  cidr_block = var.vpc_cidr_block
   tags = {
-      Name = var.cidr_blocks[0].name
-
+    Name = "${var.env_prefix}-vpc"
   }
 }
 
-resource "aws_subnet" "dev-subnet-1" {
-  vpc_id = aws_vpc.development-vpc.id
-  cidr_block = var.cidr_blocks[1].cidr_block
-  availability_zone = "eu-west-2a"
-
+resource "aws_subnet" "app-subnet-1" {
+  vpc_id = aws_vpc.app-vpc.id
+  cidr_block = var.subnet_cidr_block
+  availability_zone = var.avail_zone
   tags = {
-      Name = var.cidr_blocks[1].name
+    Name = "${var.env_prefix}-subnet-1"
   }
-}
-
-#Geting data for creation according to pre-existing resources
-data "aws_vpc" "existing-vpc" {
-  default = true
-}
-
-resource "aws_subnet" "dev-subnet-2" {
-  vpc_id = data.aws_vpc.existing-vpc.id
-  cidr_block = "172.31.48.0/20"
-  availability_zone = "eu-west-2a"
-
-  tags = {
-      Name = "dev-subnet-2"
-  }
-}
-
-output "dev-vpc-id" {
-    value = aws_vpc.development-vpc.id
-}
-
-output "dev-subnet-name" {
-  value = aws_subnet.dev-subnet-1.tags["Name"]
-}
-
-output "dev-subnet-1-id" {
-    value = aws_subnet.dev-subnet-1.id
 }
