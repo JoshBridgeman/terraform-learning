@@ -1,5 +1,5 @@
 # TerraformLearning
-This is me learning Terraform. The learning project deploys an EC2 instance with an nginx Docker image on it.
+This is me learning Terraform. The learning project deploys an EC2 instance and runs an nginx Docker container.
 
 This involves:
 1. Creating a custom VPC
