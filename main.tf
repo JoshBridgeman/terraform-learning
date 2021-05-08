@@ -8,6 +8,7 @@ variable avail_zone {}
 variable env_prefix {}
 variable access_ip {}
 variable instance_type {}
+variable pub-key-location {}
 
 resource "aws_vpc" "app-vpc" {
   cidr_block = var.vpc_cidr_block
@@ -88,6 +89,11 @@ data "aws_ami" "latest-amazon-linux-image" {
   }
 }
 
+resource "aws_key_pair" "ssh-key" {
+  key_name = "server-key"
+  public_key = "${file("${var.pub-key-location}")}"
+}
+
 resource "aws_instance" "app-server" {
   ami = data.aws_ami.latest-amazon-linux-image.id
   instance_type = var.instance_type
@@ -97,7 +103,7 @@ resource "aws_instance" "app-server" {
   availability_zone = var.avail_zone
 
   associate_public_ip_address = true
-  key_name = "TerraformDemoKeyPair"
+  key_name = aws_key_pair.ssh-key.key_name
 
   tags = {
     Name = "${var.env_prefix}-server"
@@ -109,5 +115,8 @@ resource "aws_instance" "app-server" {
 output "latest-img" {
   value = "Image fetched: ${data.aws_ami.latest-amazon-linux-image.name} (${data.aws_ami.latest-amazon-linux-image.id})"
 }
+output "server-public-ip" {
+  value = "Server Public IP: ${aws_instance.app-server.public_ip}"
+}
 
-# SSH with ssh -i ~/.ssh/TerraformDemoKeyPair.pem ec2-user@18.135.100.130
+# SSH with ssh ec2-user@[PUBLIC-IP] (We're using local SSH key pair)
