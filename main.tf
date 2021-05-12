@@ -9,6 +9,7 @@ variable env_prefix {}
 variable access_ip {}
 variable instance_type {}
 variable pub-key-location {}
+variable priv_key_loc {}
 
 resource "aws_vpc" "app-vpc" {
   cidr_block = var.vpc_cidr_block
@@ -103,9 +104,24 @@ resource "aws_instance" "app-server" {
   availability_zone = var.avail_zone
 
   associate_public_ip_address = true
+  
   key_name = aws_key_pair.ssh-key.key_name
 
-  user_data = file("./entry-script.sh")
+  #user_data = file("./entry-script.sh")
+  
+  connection {
+    type = "ssh"
+    host = self.public_ip
+    user = "ec2-user"
+    private_key = file(var.priv_key_loc)
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "mkdir newdir"
+    ]
+  }
+
   tags = {
     Name = "${var.env_prefix}-server"
   }
