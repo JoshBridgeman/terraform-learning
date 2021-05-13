@@ -6,3 +6,4 @@ variable access_ip {}
 variable instance_type {}
 variable pub-key-location {}
 variable priv_key_loc {}
+variable img_name {}
