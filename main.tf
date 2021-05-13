@@ -2,15 +2,6 @@ provider "aws" {
   region = "eu-west-2"
 }
 
-variable vpc_cidr_block {}
-variable subnet_cidr_block {}
-variable avail_zone {}
-variable env_prefix {}
-variable access_ip {}
-variable instance_type {}
-variable pub-key-location {}
-variable priv_key_loc {}
-
 resource "aws_vpc" "app-vpc" {
   cidr_block = var.vpc_cidr_block
   tags = {
@@ -18,33 +9,13 @@ resource "aws_vpc" "app-vpc" {
   }
 }
 
-resource "aws_subnet" "app-subnet-1" {
+module "app-subnet" {
+  source = "./modules/subnet"
+  subnet_cidr_block = var.subnet_cidr_block
   vpc_id = aws_vpc.app-vpc.id
-  cidr_block = var.subnet_cidr_block
-  availability_zone = var.avail_zone
-  tags = {
-    Name = "${var.env_prefix}-subnet-1"
-  }
-}
-
-resource "aws_internet_gateway" "app-igw" {
-  vpc_id = aws_vpc.app-vpc.id
-  tags = {
-    Name = "${var.env_prefix}-igw"
-  }
-}
-
-resource "aws_default_route_table" "app-vpc-main-rtb" {
+  avail_zone = var.avail_zone
+  env_prefix = var.env_prefix
   default_route_table_id = aws_vpc.app-vpc.default_route_table_id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.app-igw.id
-  }
-
-  tags = {
-    Name = "${var.env_prefix}-main-rtb"
-  }
 }
 
 resource "aws_default_security_group" "default-app-sg" {
@@ -99,7 +70,7 @@ resource "aws_instance" "app-server" {
   ami = data.aws_ami.latest-amazon-linux-image.id
   instance_type = var.instance_type
 
-  subnet_id = aws_subnet.app-subnet-1.id
+  subnet_id = module.app-subnet.subnet.id
   vpc_security_group_ids = [aws_default_security_group.default-app-sg.id]
   availability_zone = var.avail_zone
 
@@ -126,14 +97,3 @@ resource "aws_instance" "app-server" {
     Name = "${var.env_prefix}-server"
   }
 }
-
-
-
-output "latest-img" {
-  value = "Image fetched: ${data.aws_ami.latest-amazon-linux-image.name} (${data.aws_ami.latest-amazon-linux-image.id})"
-}
-output "server-public-ip" {
-  value = "Server Public IP: ${aws_instance.app-server.public_ip}"
-}
-
-# SSH with ssh ec2-user@[PUBLIC-IP] (We're using local SSH key pair)
